@@ -1,0 +1,3 @@
+(sym_lib_table
+  (lib (name circuit_master_ver.2.0.0-rescue)(type Legacy)(uri ${KIPRJMOD}/circuit_master_ver.2.0.0-rescue.lib)(options "")(descr ""))
+)
