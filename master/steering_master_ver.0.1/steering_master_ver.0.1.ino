@@ -27,7 +27,7 @@ typedef struct analog_stick {
  * プロトタイプ宣言部
  ****************************************************/
 //---surbo_ver.0.1.0内で定義--------------------------
-void move_surbo(int max_angle);
+void move_servo(int max_angle);
 int calc_angle(int analog_num, int max_angle);
 //---------------------------------------------------
 
@@ -66,7 +66,7 @@ void setup() {
 
 void loop() {
     //cmdline();
-    move_surbo(max_angle);
+    move_servo(max_angle);
 }
 
 /****************************************************

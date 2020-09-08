@@ -20,7 +20,7 @@ const byte SUB_SP_COMMND = 0x02;
  * 独自関数部
  ****************************************************/
 //
-void move_surbo(int max_angle) {
+void move_servo(int max_angle) {
     analog_stick now_state = stick_state();
     posData = ics_set_pos(0, calc_angle(now_state.x, max_angle));
     //posData = ics_set_pos(1, calc_angle(now_state.y, max_angle));

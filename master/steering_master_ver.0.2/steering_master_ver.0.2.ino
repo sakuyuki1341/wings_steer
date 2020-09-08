@@ -33,8 +33,8 @@ typedef struct analog_stick {
  * プロトタイプ宣言部
  ****************************************************/
 //---surbo_ver.0.2内で定義--------------------------
-void move_surbo(int max_angle);
-void init_surbo();
+void move_servo(int max_angle);
+void init_servo();
 //---------------------------------------------------
 
 //---command_line_ver.0.2内で定義-------------------
@@ -66,7 +66,7 @@ void setup() {
 	//各昨日のセットアップ
 	init_stick();
 	init_cmd();
-	init_surbo();
+	init_servo();
 
 	//メイン処理部に関するセットアップ
 	pinMode(PIN_SW1, INPUT_PULLUP);
@@ -78,7 +78,7 @@ void setup() {
 }
 
 void loop() {
-	move_surbo(max_angle);
+	move_servo(max_angle);
 	switch_debug();	//デバッグモード移行判定
 }
 
