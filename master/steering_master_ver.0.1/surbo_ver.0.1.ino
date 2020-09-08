@@ -40,9 +40,9 @@ void move_surbo(int max_angle) {
 
 // スティックのアナログ値と、尾翼の最大動作角度からサーボへ送る値を算出
 int calc_angle(int analog_num, int max_angle) {
-    double ret = 0.02893 * analog_num * max_angle + 3500;
-    return (int)ret;
-//    return 800 * analog_num * max_angle / 1023 / 27 + 3500;
+	double ret = 0.02893 * analog_num * max_angle + 3500;
+	return (int)ret;
+//	return 800 * analog_num * max_angle / 1023 / 27 + 3500;
 }
 
 ///
