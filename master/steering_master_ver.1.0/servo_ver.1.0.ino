@@ -1,7 +1,10 @@
+///
+/// サーボ駆動に関するファイル
+///
 /****************************************************
  * プロトタイプ宣言部
  ****************************************************/
-//---analog_stick_ver.0.2内で定義-------------------
+//---analog_stick_ver.1.0内で定義-------------------
 analog_stick stick_state();
 //--------------------------------------------------
 
@@ -9,6 +12,8 @@ analog_stick stick_state();
  * グローバル変数/配列 宣言部
  ****************************************************/
 int posData;
+int centerPS_x;
+int centerPS_y;
 
 //コマンドの定義
 const byte ICS_POS_CMD = 0x80;
@@ -26,25 +31,33 @@ void init_servo() {
 	digitalWrite(PIN_EN, LOW);			//常に受信モードにしておく
 }
 
+
 // サーボモータを駆動する
-// 提案：毎回サーボモータへ送信するのではなく
-// 　　　スティックの入力値が変化した場合のみ送信するようにすると良いかもしれない。
-void move_servo(int max_angle) {
+void move_servo(int max_angle, int tmp_centerPS_x, int tmp_centerPS_y) {
 	analog_stick now_state = stick_state();
-	posData = ics_set_pos(0, calc_angle(now_state.x, max_angle));
+	int send_PS_x = calc_angle(now_state.x, max_angle, centerPS_x, tmp_centerPS_x);
+	int send_PS_y = calc_angle(now_state.y, max_angle, centerPS_y, tmp_centerPS_y);
+	posData = ics_set_pos(0, send_PS_x);
 }
 
-// スティックのアナログ値と、尾翼の最大動作角度からサーボへ送る値を算出
-int calc_angle(int analog_num, int max_angle) {
-	double ret = 0.02893 * analog_num * max_angle + 3500;
-	return (int)ret;
-//	return 800 * analog_num * max_angle / 1023 / 27 + 3500;
-//	max_angle：0 ～ 270
+
+// スティックのアナログ値、尾翼の最大動作角度、中央値からサーボへ送る値を算出
+int calc_angle(int analog_num, int max_angle, int centerPS, int tmp_centerPS) {
+	double max_amp = 4000 * max_angle / 135;
+	double send_centPS = (centerPS - 100) * 40 + 7500;
+	double amp = (analog_num + tmp_centerPS - 1024) / 512 * max_amp;
+	double send_PS = send_centPS + amp;
+	if (send_PS > 7500 + max_amp) {
+		send_PS = 7500 + max_amp;
+	}
+	if (send_PS < 7500 - max_amp) {
+		send_PS = 7500 - max_amp;
+	}
+	return (int)send_PS;
 }
 
-///
-/// 送受信する
-///
+
+// 送受信する
 bool Synchronize(byte *txBuff, size_t txLength, byte *rxBuff, size_t rxLength) {
 	int size;	//受信したbyte数
 
@@ -72,9 +85,7 @@ bool Synchronize(byte *txBuff, size_t txLength, byte *rxBuff, size_t rxLength) {
 }
 
 
-///
-/// ポジションコマンドを送る
-///
+// ポジションコマンドを送る
 int ics_set_pos(byte id, unsigned short pos) {
 	byte tx_data[3];
 	byte rx_data[3];
@@ -97,9 +108,8 @@ int ics_set_pos(byte id, unsigned short pos) {
 	return rAngle;
 }
 
-///
-/// ストレッチを変更する
-///
+
+// ストレッチを変更する
 bool ics_set_st(byte id, byte stData) {
 	byte tx_data[3];
 	byte rx_data[3];
@@ -119,9 +129,8 @@ bool ics_set_st(byte id, byte stData) {
 	return flag;
 }
 
-///
-/// スピードを変更する
-///
+
+// スピードを変更する
 bool ics_set_sp(byte id, byte spData) {
 	byte tx_data[3];
 	byte rx_data[3];
@@ -139,4 +148,10 @@ bool ics_set_sp(byte id, byte spData) {
 	}
 
 	return flag;
+}
+
+
+// ID書き込み
+bool ics_set_id(byte spData) {
+	
 }
