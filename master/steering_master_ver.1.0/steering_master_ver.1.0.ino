@@ -4,69 +4,18 @@
 /****************************************************
  * マクロ部
  ****************************************************/
-//ピン設定.基板に合わせて設定
-#define PIN_AS_X 0		// アナログスティックx軸(アナログ)
-#define PIN_AS_Y 1		// アナログスティックy軸(アナログ)
-#define PIN_AS_SW 10	// アナログスティックスイッチ
-#define PIN_LED1 5		// 基板上LED1
-#define PIN_LED2 6		// 基板上LED2
-#define PIN_SW1 3		// 基板上スイッチ1
-#define PIN_SW2 4		// 基板上スイッチ2
-#define PIN_SS_RX 7		// ソフトウェアシリアルRX
-#define PIN_SS_TX 8		// ソフトウェアシリアルTX
-#define PIN_EN 2		// サーボモータ制御用Enピン
-#define PIN_I2C_SDA 11	// メインとの通信用I2CのSDA
-#define PIN_I2C_SCL 12	// メインとの通信用I2CのSCL
-
-/****************************************************
- * 構造体宣言部
- ****************************************************/
-//アナログスティックの状態を保存する構造体
-typedef struct analog_stick {
-	int x;	//x軸の値 0~1023
-	int y;	//y軸の値 0~1023
-	int sw;	//スイッチの状態 0:オフ	/1:オン
-} analog_stick;
-
-/****************************************************
- * プロトタイプ宣言部
- ****************************************************/
-//---surbo_ver.1.0内で定義----------------------------
-void move_servo(int max_angle, int tmp_centerPS_x, int tmp_centerPS_y);
-void init_servo();
-//---------------------------------------------------
-
-//---command_line_ver.1.0内で定義---------------------
-void init_cmd();
-void start_cmd();
-void stop_cmd();
-//---------------------------------------------------
-
-//---analog_stick_ver.1.0内で定義---------------------
-void init_stick();
-analog_stick stick_state();
-//---------------------------------------------------
-
-//---memory_ver.1.0内で定義---------------------------
-void init_memory();
-void load_parameters();
-//---------------------------------------------------
-
-void update_center();
-void switch_debug();
-void judge_load();
+#include "subs_ver.1.0.h"
 
 /****************************************************
  * グローバル変数/配列 宣言部
  ****************************************************/
-// パラメータ変数群.細かい値はファイルmemoryを参照
-extern int max_angle;	//舵角の最大値(0 ~ 135)
-extern int stretch;		//サーボモータのストレッチ(1~127)
-extern int speed;		//サーボモータのスピード(1~127)
-extern int centerPS_x;	//サーボモータのx軸の中央値(0~200)
-extern int centerPS_y;	//サーボモータのy軸の中央値(0~200)
-
-// アナログスティックの押し込みで設定する中央値
+// EEPEOMに保存されるパラメータの初期値。
+int max_angle = 135;	//舵角の最大値(0 ~ 135)
+int stretch = 64;	//サーボモータのストレッチ(1~127)
+int speed = 64;		//サーボモータのスピード(1~127)
+int centerPS_x = 100;	//サーボモータのx軸の中央値(0~200)
+int centerPS_y = 100;	//サーボモータのy軸の中央値(0~200)
+// アナログスティックの押し込みで設定する中央値の初期値
 int tmp_centerPS_x = 512;	//一時的なスティックx軸の中央値(0~1023)
 int tmp_centerPS_y = 512;	//一時的なスティックy軸の中央値(0~1023)
 
@@ -102,7 +51,7 @@ void setup() {
 
 //動作時、基本的には以下の関数のみでループします。
 void loop() {
-	move_servo(max_angle, tmp_centerPS_x, tmp_centerPS_y);
+	move_servo();
 	switch_debug();		//デバッグモード移行判定
 	update_center();	//スティックの押し込み判定
 	//enable_debug = 1のとき、デバッグモード.
@@ -146,6 +95,8 @@ void update_center() {
 		// スティックが押されてから、スティックが中央に戻るか、1sec経つまでは他の処理をさせない。
 		for (int i = 0; i < 1000; i++) {
 			analog_stick now_state = stick_state();
+			//中央に戻ったらループ解除。ただし、中央値は度々変化するので注意。
+			// 現状、中央に戻ってのループ解除は実質機能していない。512の値を適宜調節してください。
 			if (now_state.x == 512 && now_state.y == 512) {	//中央に戻ったらループ解除
 				break;
 			}
@@ -202,14 +153,14 @@ void judge_load() {
 
 	// パラメータロード完了できたかの確認用にLEDを点滅
 	digitalWrite(PIN_LED2, LOW);
-	delay(400);
+	delay(200);
 	digitalWrite(PIN_LED2, HIGH);
-	delay(400);
+	delay(200);
 	digitalWrite(PIN_LED2, LOW);
-	delay(400);
+	delay(200);
 	digitalWrite(PIN_LED2, HIGH);
-	delay(400);
+	delay(200);
 	digitalWrite(PIN_LED2, LOW);
-	delay(400);
+	delay(200);
 	digitalWrite(PIN_LED2, HIGH);
 }

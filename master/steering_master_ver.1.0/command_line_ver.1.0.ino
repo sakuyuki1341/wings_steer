@@ -4,13 +4,12 @@
 /****************************************************
  * マクロ部
  ****************************************************/
-#include <MsTimer2.h>
-#include <SoftwareSerial.h>
-#include <string.h>
+#include "subs_ver.1.0.h"
 
 #define EXEC_COMMAND_NOT_FOUND -1	// コマンドが未発見時の戻値
+#define INCORRECT_ARGUMENTS 0		// 引数が誤っている場合の戻り値
 #define MAX_ARGC 16					// 引数の個数の最大値
-#define COMMAND_TOTAL_NUM 1			// コマンド総数
+#define COMMAND_TOTAL_NUM 4			// コマンド総数
 
 /****************************************************
  * 構造体宣言部
@@ -31,18 +30,24 @@ void init_cmd();
 
 // 以下各コマンド関数
 int help(int argc, char *argv[MAX_ARGC]);
+int save(int argc, char *argv[MAX_ARGC]);
+int set_id(int argc, char *argv[MAX_ARGC]);
+int set_max_angle(int argc, char *argv[MAX_ARGC]);
 
 /****************************************************
  * グローバル変数/配列 宣言部
  ****************************************************/
 // コマンドテーブル
 command command_table[] = {
-	{help, "help", "show command list"}
+	{help, "help", "show command list"},
+	{save, "save", "save parameter"},
+	{set_id, "set_id", "set servo id"},
+	{set_max_angle, "set_max_angle", "set max angle"}
 };
 
 String buff = "NO_COMAND";		// シリアル受信した文字列
 bool is_buff_updated = false;	// 文字列が更新されたか
-SoftwareSerial cmdSerial(7, 8);	// ソフトウェアシリアルのオブジェクトを生成
+SoftwareSerial cmdSerial(PIN_SS_RX, PIN_SS_TX);	// ソフトウェアシリアルのオブジェクトを生成
 
 /****************************************************
  * 独自関数部
@@ -76,11 +81,15 @@ void cmdline() {
 		buff.trim();	//文字列の末尾の改行とスペースを取り除く
 		int pattern = exec(buff.c_str());
 		switch(pattern) {
-			case -1:
-				cmdSerial.println("error\ncommand is not effectiveness");
+			case EXEC_COMMAND_NOT_FOUND:
+				cmdSerial.println("error\nthe command dose not exist");
+				break;
+			case INCORRECT_ARGUMENTS:
+				cmdSerial.println("error\nthe argument settings are incorrect");
 				break;
 			default:
 				cmdSerial.println("command successful");
+				break;
 		}
 		cmdSerial.println("======================================================");
 		is_buff_updated = false;
@@ -127,8 +136,42 @@ int exec(const char *str) {
 	return EXEC_COMMAND_NOT_FOUND;
 }
 
-// コマンド関数
+/// 以下コマンド関数
+// コマンド一覧を表示
 int help(int argc, char *argv[MAX_ARGC]) {
 	cmdSerial.println("please type command");
+	return 1;
+}
+
+// パラメータのセーブを実行
+int save(int argc, char *argv[MAX_ARGC]) {
+	save_parameters();
+	cmdSerial.println("parameter saving completed successfully");
+	return 1;
+}
+
+// サーボモータへidのセットを実行
+int set_id(int argc, char *argv[MAX_ARGC]) {
+	if (argv[argc] == NULL) {
+		return INCORRECT_ARGUMENTS;
+	}
+	
+	if (ics_set_id(atoi(argv[1]))) {	//送信に成功した場合
+		cmdSerial.println("the id was set successfully");
+		return 1;
+	} else {
+		cmdSerial.println("error. the id was not set successfully");
+		return 1;
+	}
+}
+
+// 最大舵角のセットを実行
+int set_max_angle(int argc, char *argv[MAX_ARGC]) {
+	if (argv[argc] == NULL) {
+		return INCORRECT_ARGUMENTS;
+	}
+
+	max_angle = atoi(argv[1]);
+	cmdSerial.println("the max_angle was set successfully");
 	return 1;
 }

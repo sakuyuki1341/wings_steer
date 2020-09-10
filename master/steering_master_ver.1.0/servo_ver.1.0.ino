@@ -2,24 +2,22 @@
 /// サーボ駆動に関するファイル
 ///
 /****************************************************
- * プロトタイプ宣言部
+ * マクロ部
  ****************************************************/
-//---analog_stick_ver.1.0内で定義-------------------
-analog_stick stick_state();
-//--------------------------------------------------
+#include "subs_ver.1.0.h"
 
 /****************************************************
  * グローバル変数/配列 宣言部
  ****************************************************/
 int posData;
-int centerPS_x;
-int centerPS_y;
 
 //コマンドの定義
 const byte ICS_POS_CMD = 0x80;
 const byte ICS_PARA_WRITE_COMMND =0xC0;
 const byte SUB_ST_COMMND = 0x01;
 const byte SUB_SP_COMMND = 0x02;
+const byte ICS_SET_ID_COMMND = 0xE0;
+const byte SUB_ICS_SET_ID_COMMND = 0x01;
 
 /****************************************************
  * 独自関数部
@@ -33,26 +31,37 @@ void init_servo() {
 
 
 // サーボモータを駆動する
-void move_servo(int max_angle, int tmp_centerPS_x, int tmp_centerPS_y) {
-	analog_stick now_state = stick_state();
-	int send_PS_x = calc_angle(now_state.x, max_angle, centerPS_x, tmp_centerPS_x);
-	int send_PS_y = calc_angle(now_state.y, max_angle, centerPS_y, tmp_centerPS_y);
+void move_servo() {
+	analog_stick now_state = stick_state();	//スティックの情報を取得
+	int send_PS_x = calc_angle(now_state.x, centerPS_x, tmp_centerPS_x);
+	int send_PS_y = calc_angle(now_state.y, centerPS_y, tmp_centerPS_y);
 	posData = ics_set_pos(0, send_PS_x);
+	posData = ics_set_pos(1, send_PS_y);
 }
 
 
 // スティックのアナログ値、尾翼の最大動作角度、中央値からサーボへ送る値を算出
-int calc_angle(int analog_num, int max_angle, int centerPS, int tmp_centerPS) {
-	double max_amp = 4000 * max_angle / 135;
-	double send_centPS = (centerPS - 100) * 40 + 7500;
-	double amp = (analog_num + tmp_centerPS - 1024) / 512 * max_amp;
-	double send_PS = send_centPS + amp;
+int calc_angle(int analog_num, int centerPS, int tmp_centerPS) {
+	// 以下の計算は型によっては溢れたりするので、注意してください。
+	float Max_amp = 4000 * (max_angle / 135);
+	long max_amp = Max_amp;
+	long send_centPS = (centerPS - 100) * 40 + 7500;
+	long amp = ((analog_num + tmp_centerPS - 1024) * max_amp) / 512;
+	long send_PS = send_centPS + amp;
 	if (send_PS > 7500 + max_amp) {
 		send_PS = 7500 + max_amp;
 	}
 	if (send_PS < 7500 - max_amp) {
 		send_PS = 7500 - max_amp;
 	}
+	/*デバッグ用
+	cmdSerial.print("analog_num : "); cmdSerial.println(analog_num);
+	cmdSerial.print("max_amp : "); cmdSerial.println(max_amp);
+	cmdSerial.print("send_centPS : "); cmdSerial.println(send_centPS);
+	cmdSerial.print("amp : "); cmdSerial.println(amp);
+	cmdSerial.print("send_PS : "); cmdSerial.println(send_PS);
+	cmdSerial.println("------------");
+	*/
 	return (int)send_PS;
 }
 
@@ -152,6 +161,22 @@ bool ics_set_sp(byte id, byte spData) {
 
 
 // ID書き込み
-bool ics_set_id(byte spData) {
-	
+bool ics_set_id(byte idData) {
+	byte tx_data[4];
+	byte rx_data[1];
+	bool flag;
+	/// 送信コマンドを作成
+	tx_data[0] = ICS_SET_ID_COMMND + idData;
+	tx_data[1] = SUB_ICS_SET_ID_COMMND;
+	tx_data[2] = SUB_ICS_SET_ID_COMMND;
+	tx_data[3] = SUB_ICS_SET_ID_COMMND;
+
+	//送受信を行う
+	flag = Synchronize(tx_data, 4, rx_data, 1);
+
+	if(flag == false) {	//失敗した場合は-1を返す
+		return -1;
+	}
+
+	return flag;
 }
